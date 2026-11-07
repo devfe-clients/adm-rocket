@@ -83,5 +83,5 @@ function Finance() {
 }
 
 function Summary({ items }: { items: [string, number][] }) {
-  return <div className="grid grid-cols-3 gap-2 mb-3">{items.map(([k, v]) => <div key={k} className="rounded-lg border bg-card px-3 py-2"><p className="text-xs text-muted-foreground">{k}</p><p className="font-bold tabular-nums text-sm md:text-base">{brl(v)}</p></div>)}</div>;
+  return <div className="grid grid-cols-3 gap-2 mb-3">{items.map(([k, v]) => <div key={k} className="rounded-lg border bg-card px-3 py-2"><p className="text-xs text-muted-foreground">{k}</p><p className="font-bold tabular-nums text-xs sm:text-sm md:text-base truncate">{brl(v)}</p></div>)}</div>;
 }

@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Architecture
+- All persistence goes through `src/services/repository.ts` (`Repository` interface; local/mock now, Firebase later via `src/services/config.ts` env vars) — keeps the data source swappable without touching pages.
+- Financial math (event DRE, bar losses, commissions) lives only in `src/lib/calc.ts` with tests in `calc.test.ts` — one source of truth for every screen.
