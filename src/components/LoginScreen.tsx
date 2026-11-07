@@ -33,9 +33,7 @@ export function LoginScreen() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex items-center justify-center rounded-xl bg-primary p-3">
-            <Rocket className="size-7 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Rocket Gestão" className="size-16 rounded-xl object-cover" />
           <h1 className="text-2xl font-bold font-display">Rocket Gestão</h1>
           <p className="text-sm text-muted-foreground">Acesso restrito à equipe Rocket</p>
         </div>

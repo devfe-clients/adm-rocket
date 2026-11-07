@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen md:flex">
       <aside className="hidden md:flex md:w-60 md:flex-col bg-sidebar text-sidebar-foreground sticky top-0 h-screen p-4 gap-1">
         <div className="flex items-center gap-2 px-2 pb-6 pt-2">
-          <Rocket className="size-6 text-sidebar-primary" />
+          <img src="/logo.png" alt="Rocket" className="size-6 rounded-md object-cover" />
           <span className="font-display text-lg font-bold">Rocket Gestão</span>
         </div>
         {items.map((n) => (
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <header className="md:hidden sticky top-0 z-20 flex items-center justify-between bg-sidebar text-sidebar-foreground px-4 py-3">
-        <div className="flex items-center gap-2"><Rocket className="size-5 text-sidebar-primary" /><span className="font-display font-bold">Rocket</span></div>
+        <div className="flex items-center gap-2"><img src="/logo.png" alt="Rocket" className="size-5 rounded object-cover" /><span className="font-display font-bold">Rocket</span></div>
         {dataProvider === "local" ? (
           <select value={db.currentUserId} onChange={(e) => update((d) => { d.currentUserId = e.target.value; })} className="rounded-md bg-sidebar-accent px-2 py-1 text-xs max-w-[55%]">
             {db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
