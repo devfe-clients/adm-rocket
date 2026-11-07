@@ -74,7 +74,7 @@ function EventPage() {
 
       <Tabs defaultValue="id">
         <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap">
-          {[["id", "Evento"], ["caixas", "Caixas"], ["camarotes", "Camarotes"], ["custos", "Custos"], ["bar", "Bar"], ["dre", "DRE"]].map(([v, l]) => <TabsTrigger key={v} value={v} className="py-2">{l}</TabsTrigger>)}
+          {([["id", "Evento"], ["caixas", "Caixas"], ["camarotes", "Camarotes"], ["custos", "Custos"], ["bar", "Bar"], ["dre", "DRE"]] as const).map(([v, l]) => <TabsTrigger key={v} value={v} className="py-2">{l}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="id" className="mt-4">
