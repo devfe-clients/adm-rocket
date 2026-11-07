@@ -26,7 +26,7 @@ function EventsPage() {
 
   const create = () => {
     const id = uid();
-    update((d) => { d.events.push({ id, companyId: p.company !== "all" ? p.company : visibleCompanies[0].id, name: "Novo evento", date: new Date().toISOString().slice(0, 10), partner: "", houseShare: 0.5, cashiers: [], boxes: [], costs: [], bar: [], courtesies: [], barConsolidated: 0 }); });
+    update((d) => { d.events.push({ id, companyId: p.company !== "all" ? p.company : (visibleCompanies[0]?.id ?? db.companies[0]!.id), name: "Novo evento", date: new Date().toISOString().slice(0, 10), partner: "", houseShare: 0.5, cashiers: [], boxes: [], costs: [], bar: [], courtesies: [], barConsolidated: 0 }); });
     nav({ to: "/eventos/$id", params: { id } });
   };
 

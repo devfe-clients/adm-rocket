@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Num, PaidToggle, Sel, Txt } from "@/components/fields";
 import { useStore } from "@/lib/store";
 import { barLine, boxCommission, brl, cashierNet, eventDRE, sum } from "@/lib/calc";
-import { COST_CATEGORIES, type RocketEvent } from "@/lib/types";
+import { COST_CATEGORIES, type RocketEvent, type Cashier, type Box, type Cost, type BarItem, type Courtesy } from "@/lib/types";
 import { uid } from "@/services/seed";
 import { cn } from "@/lib/utils";
 
@@ -53,9 +53,9 @@ function EventPage() {
   const d = eventDRE(e, s);
   const set = (fn: (ev: RocketEvent) => void) => update((db) => { const ev = db.events.find((x) => x.id === id); if (ev) fn(ev); });
   type ListKey = "cashiers" | "boxes" | "costs" | "bar" | "courtesies";
-  const ops = <K extends ListKey>(k: K, blank: () => Omit<RocketEvent[K][number], "id">) => ({
-    rows: e[k] as RocketEvent[K][number][] as never,
-    onChange: (rid: string, fn: (r: never) => void) => set((ev) => { const r = (ev[k] as { id: string }[]).find((x) => x.id === rid); if (r) fn(r as never); }),
+  const ops = <T extends { id: string }>(k: ListKey, blank: () => Omit<T, "id">) => ({
+    rows: e[k] as unknown as T[],
+    onChange: (rid: string, fn: (r: T) => void) => set((ev) => { const r = (ev[k] as unknown as T[]).find((x) => x.id === rid); if (r) fn(r); }),
     onAdd: () => set((ev) => { (ev[k] as unknown[]).push({ id: uid(), ...blank() }); }),
     onRemove: (rid: string) => set((ev) => { (ev[k] as { id: string }[]) = (ev[k] as { id: string }[]).filter((x) => x.id !== rid) as never; }),
   });
@@ -84,12 +84,12 @@ function EventPage() {
             <F label="Casa"><Sel value={e.companyId} onChange={(v) => set((x) => { x.companyId = v; })} options={visibleCompanies.map((c) => ({ value: c.id, label: c.name }))} /></F>
             <F label="Produtor / Parceiro"><Txt value={e.partner} onChange={(v) => set((x) => { x.partner = v; })} /></F>
             <F label={`% do lucro da casa (parceiro: ${Math.round((1 - e.houseShare) * 100)}%)`}><Num value={Math.round(e.houseShare * 100)} onChange={(v) => set((x) => { x.houseShare = Math.min(100, Math.max(0, v)) / 100; })} /></F>
-            {isDirector && <div className="flex items-end"><Button variant="outline" className="text-destructive" onClick={() => { if (confirm("Excluir evento?")) { update((db) => { db.events = db.events.filter((x) => x.id !== id); }); nav({ to: "/eventos" }); } }}><Trash2 /> Excluir evento</Button></div>}
+            {isDirector && <div className="flex items-end"><Button variant="outline" className="text-destructive" onClick={() => { if (window.confirm("Excluir evento?")) { update((db) => { db.events = db.events.filter((x) => x.id !== id); }); nav({ to: "/eventos" }); } }}><Trash2 /> Excluir evento</Button></div>}
           </div>
         </TabsContent>
 
         <TabsContent value="caixas" className="mt-4">
-          <Grid {...ops("cashiers", () => ({ operator: "", card: 0, cash: 0, pix: 0, refunds: 0, sangria: 0 }))} cols={[
+          <Grid {...ops<Cashier>("cashiers", () => ({ operator: "", card: 0, cash: 0, pix: 0, refunds: 0, sangria: 0 }))} cols={[
             { h: "Operador", render: t("operator") }, { h: "Cartão", render: n("card") }, { h: "Dinheiro", render: n("cash") }, { h: "PIX", render: n("pix") },
             { h: "Devoluções", render: n("refunds") }, { h: "Sangria", render: n("sangria") }, { h: "Total líquido", render: (r) => <Out v={cashierNet(r)} /> },
           ]} footer={<tfoot className="border-t font-bold"><tr><td className="p-2">Total</td>{(["card", "cash", "pix", "refunds", "sangria"] as const).map((k) => <td key={k} className="p-2 text-right tabular-nums">{brl(sum(e.cashiers.map((c) => c[k])))}</td>)}<td className="p-2 text-right tabular-nums">{brl(d.cashiers)}</td><td /></tr></tfoot>} />
@@ -97,7 +97,7 @@ function EventPage() {
         </TabsContent>
 
         <TabsContent value="camarotes" className="mt-4">
-          <Grid {...ops("boxes", () => ({ lot: "", client: "", value: 0, consumption: 0, deposit: 0, doorCard: 0, doorCash: 0, seller: "", commission: 0 }))} cols={[
+          <Grid {...ops<Box>("boxes", () => ({ lot: "", client: "", value: 0, consumption: 0, deposit: 0, doorCard: 0, doorCash: 0, seller: "", commission: 0 }))} cols={[
             { h: "Lote/Camarote", render: t("lot") }, { h: "Cliente", render: t("client") }, { h: "Valor venda", render: n("value") }, { h: "Consumação", render: n("consumption") },
             { h: "Sinal", render: n("deposit") }, { h: "A receber", render: (r) => <Out v={r.value - r.deposit} /> }, { h: "Porta cartão", render: n("doorCard") }, { h: "Porta dinheiro", render: n("doorCash") },
             { h: "Vendedor/Promoter", render: t("seller") },
@@ -107,7 +107,7 @@ function EventPage() {
         </TabsContent>
 
         <TabsContent value="custos" className="mt-4">
-          <Grid {...ops("costs", () => ({ item: "", category: "Estrutura" as const, value: 0, paid: false }))} cols={[
+          <Grid {...ops<Cost>("costs", () => ({ item: "", category: "Estrutura" as const, value: 0, paid: false }))} cols={[
             { h: "Item", render: t("item") },
             { h: "Categoria", render: (r, st) => <Sel value={r.category} onChange={(v) => st((x) => { x.category = v; })} options={COST_CATEGORIES.map((c) => ({ value: c, label: c }))} /> },
             { h: "Valor", render: n("value") }, { h: "Pago?", render: (r, st) => <PaidToggle paid={r.paid} onToggle={() => st((x) => { x.paid = !x.paid; })} /> },
@@ -120,7 +120,7 @@ function EventPage() {
             <div className="rounded-xl border bg-card p-4 max-w-sm"><F label="Custo total do bar (lançamento consolidado)"><Num value={e.barConsolidated} onChange={(v) => set((x) => { x.barConsolidated = v; })} /></F>
               <p className="text-xs text-muted-foreground mt-2">Altere para contagem garrafa a garrafa em Ajustes.</p></div>
           ) : (
-            <Grid {...ops("bar", () => ({ product: "", initial: 0, final: 0, unitCost: 0, sold: 0, owner: "casa" as const }))} cols={[
+            <Grid {...ops<BarItem>("bar", () => ({ product: "", initial: 0, final: 0, unitCost: 0, sold: 0, owner: "casa" as const }))} cols={[
               { h: "Produto", render: t("product") },
               { h: "Origem", render: (r, st) => <Sel value={r.owner} onChange={(v) => st((x) => { x.owner = v; })} options={[{ value: "casa", label: "Casa" }, { value: "consignado", label: "Consignado" }]} /> },
               { h: "Inicial", render: n("initial") }, { h: "Final", render: n("final") }, { h: "Usou", render: (r) => <div className="px-2 text-right">{barLine(r).used}</div> },
@@ -130,7 +130,7 @@ function EventPage() {
             ]} footer={<tfoot className="border-t font-bold"><tr><td className="p-2" colSpan={8}>Total</td><td className="p-2 text-right text-destructive">{brl(d.losses)}</td><td className="p-2 text-right">{brl(d.bar)}</td><td /></tr></tfoot>} />
           )}
           <div><h3 className="font-semibold mb-2">Gerência (cortesias a R$ 0,00)</h3>
-            <Grid {...ops("courtesies", () => ({ product: "", qty: 0, note: "" }))} cols={[{ h: "Produto", render: t("product") }, { h: "Qtd", render: n("qty") }, { h: "Observação", render: t("note") }]} /></div>
+            <Grid {...ops<Courtesy>("courtesies", () => ({ product: "", qty: 0, note: "" }))} cols={[{ h: "Produto", render: t("product") }, { h: "Qtd", render: n("qty") }, { h: "Observação", render: t("note") }]} /></div>
         </TabsContent>
 
         <TabsContent value="dre" className="mt-4">

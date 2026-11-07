@@ -14,8 +14,8 @@ const ev: RocketEvent = {
 
 describe("DRE do evento", () => {
   it("consignado não entra no custo do bar e furo = usado - vendido", () => {
-    expect(barLine(ev.bar[0])).toMatchObject({ used: 80, loss: 10, cost: 160 });
-    expect(barLine(ev.bar[1]).cost).toBe(0);
+    expect(barLine(ev.bar[0]!)).toMatchObject({ used: 80, loss: 10, cost: 160 });
+    expect(barLine(ev.bar[1]!).cost).toBe(0);
   });
   it("calcula receita, custos e divisão casa/parceiro (comissão percentual 10%)", () => {
     const d = eventDRE(ev, { barMode: "detalhado", commissionMode: "percentual", commissionPct: 10 });

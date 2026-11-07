@@ -7,7 +7,7 @@ export function usePeriod() {
   const [month, setMonth] = useState<number | "all">(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   useEffect(() => {
-    if (!isDirector && visibleCompanies.length === 1) setCompany(visibleCompanies[0].id);
+    if (!isDirector && visibleCompanies.length === 1) setCompany(visibleCompanies[0]!.id);
     else if (!isDirector && company !== "all" && !visibleCompanies.some((c) => c.id === company)) setCompany("all");
   }, [isDirector, visibleCompanies, company]);
   const allowed = new Set(visibleCompanies.map((c) => c.id));

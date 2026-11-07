@@ -23,7 +23,7 @@ function Finance() {
   const { db, update, visibleCompanies } = useStore();
   const p = usePeriod();
   const companies = visibleCompanies.map((c) => ({ value: c.id, label: c.short }));
-  const defCo = p.company !== "all" ? p.company : visibleCompanies[0]?.id;
+  const defCo = p.company !== "all" ? p.company : (visibleCompanies[0]?.id ?? db.companies[0]!.id);
   const today = new Date().toISOString().slice(0, 10);
   const pays = db.payables.filter((x) => p.matchCompany(x.companyId) && inPeriod(x.due, p.month, p.year)).sort((a, b) => a.due.localeCompare(b.due));
   const recs = db.receivables.filter((x) => p.matchCompany(x.companyId) && inPeriod(x.date, p.month, p.year)).sort((a, b) => a.date.localeCompare(b.date));
