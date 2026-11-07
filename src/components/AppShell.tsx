@@ -48,7 +48,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="opacity-60 capitalize">{user.role}</p>
             </div>
           )}
-          <p className="opacity-60">Dados: {dataProvider === "local" ? "locais (demo)" : "Firebase"}</p>
           {dataProvider === "firebase" && (
             <button onClick={() => void signOut()} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground transition">
               <LogOut className="size-3.5" /> Sair

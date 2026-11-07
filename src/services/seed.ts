@@ -78,8 +78,8 @@ export function seed(): DB {
       { id: uid(), client: "Aluguel espaço - Casamento", companyId: "sea", date: d(3), value: 18000, due: d(25), paid: false },
     ],
     users: [
-      { id: "u1", name: "Felipe (Diretor)", email: "diretor@rocket.com", role: "diretor", companyIds: ["beach", "sea", "eventos"] },
-      { id: "u2", name: "Carla (Gerente Sea)", email: "gerente@rocket.com", role: "gerente", companyIds: ["sea"] },
+      { id: "u1", name: "Felipe (Diretor)", email: "fellipe@rocket.com.br", role: "diretor", companyIds: ["beach", "sea", "eventos"] },
+      { id: "u2", name: "Carla (Gerente Sea)", email: "gerente@rocket.com.br", role: "gerente", companyIds: ["sea"] },
     ],
     currentUserId: "u1",
     settings: { barMode: "detalhado", commissionMode: "percentual", commissionPct: 5, categories: ["Utilidades", "Bebidas", "Obras", "Pessoal", "Impostos", "Aluguel"] },

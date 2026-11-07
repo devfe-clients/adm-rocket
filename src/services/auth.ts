@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import {
   createContext,
   useContext,
@@ -53,11 +53,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         const snap = await getDoc(doc(firestore, "rocket-gestao/db-v1"));
+        let dbData: import("@/lib/types").DB;
         if (snap.exists()) {
-          const db = snap.data() as import("@/lib/types").DB;
-          const appUser = db.users.find((u) => u.email === fbUser.email) ?? null;
-          setUser(appUser);
+          dbData = snap.data() as import("@/lib/types").DB;
+        } else {
+          dbData = seed();
+          await setDoc(doc(firestore, "rocket-gestao/db-v1"), dbData);
         }
+        const appUser = dbData.users.find((u: import("@/lib/types").AppUser) => u.email === fbUser.email) ?? null;
+        if (!appUser) {
+          setError("Usuário sem permissão. Contate o administrador.");
+          await firebaseSignOut(auth);
+        }
+        setUser(appUser);
       } catch (e) {
         console.error("Erro ao carregar usuário:", e);
         setUser(null);
