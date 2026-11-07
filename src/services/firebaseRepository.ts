@@ -18,7 +18,12 @@ let unsub: Unsubscribe | null = null;
 async function hydrate(): Promise<void> {
   const ref = doc(firestore, DOC_PATH);
   const snap = await getDoc(ref);
-  cache = snap.exists() ? (snap.data() as DB) : seed();
+  if (snap.exists()) {
+    cache = snap.data() as DB;
+  } else {
+    cache = seed();
+    await setDoc(ref, cache);   
+  }
 
   if (unsub) unsub();
   unsub = onSnapshot(ref, (s) => {
