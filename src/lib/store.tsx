@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { DB } from "./types";
 import { getRepository } from "@/services/repository";
+import { hydrateFirebase } from "@/services/firebaseRepository";
+import { dataProvider } from "@/services/config";
 import { seed } from "@/services/seed";
 
 type Ctx = { db: DB; update: (fn: (db: DB) => void) => void; ready: boolean };
@@ -9,7 +11,21 @@ const StoreCtx = createContext<Ctx | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(seed);
   const [ready, setReady] = useState(false);
-  useEffect(() => { setDb(getRepository().load()); setReady(true); }, []);
+  useEffect(() => {
+    if (dataProvider === "firebase") {
+      hydrateFirebase().then(() => {
+        setDb(getRepository().load());
+        setReady(true);
+      }).catch((e) => {
+        console.error("Falha ao hidratar Firebase:", e);
+        setDb(getRepository().load());
+        setReady(true);
+      });
+    } else {
+      setDb(getRepository().load());
+      setReady(true);
+    }
+  }, []);
   const update = (fn: (db: DB) => void) =>
     setDb((prev) => { const next = structuredClone(prev); fn(next); getRepository().save(next); return next; });
   return <StoreCtx.Provider value={{ db, update, ready }}>{children}</StoreCtx.Provider>;
