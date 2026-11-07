@@ -52,10 +52,6 @@ function SettingsPage() {
           <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">{c}<button aria-label={`Remover ${c}`} onClick={() => update((d) => { d.settings.categories = d.settings.categories.filter((x) => x !== c); })}><X className="size-3" /></button></span>))}</div>
         <div className="flex gap-2"><Txt value={cat} onChange={setCat} /><Button disabled={!cat.trim()} onClick={() => { update((d) => { d.settings.categories.push(cat.trim()); }); setCat(""); }}><Plus /> Categoria</Button></div>
       </Card>
-      <Card title="Dados e integração">
-        <p className="text-sm text-muted-foreground">Fonte atual: <b>{dataProvider === "local" ? "dados locais neste aparelho (demonstração)" : "Firebase"}</b>. Preencha as chaves do Firebase no arquivo de ambiente para ativar a nuvem.</p>
-        <Button variant="outline" className="mt-3" onClick={() => confirm("Restaurar dados de exemplo? Isso apaga os lançamentos locais.") && resetLocal()}>Restaurar dados de exemplo</Button>
-      </Card>
     </div>
   );
 }
