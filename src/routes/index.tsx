@@ -262,7 +262,7 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <section className="lg:col-span-3 rounded-xl border bg-card p-4 flex flex-col justify-between">
+        <section className="lg:col-span-3 min-w-0 rounded-xl border bg-card p-4 flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
               <h2 className="font-semibold text-sm">Lucro por evento</h2>
