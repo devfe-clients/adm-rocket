@@ -3,13 +3,13 @@ import { cn } from "@/lib/utils";
 
 export function Num({ value, onChange, className }: { value: number; onChange: (n: number) => void; className?: string }) {
   return (
-    <input type="number" inputMode="decimal" value={Number.isFinite(value) ? value : 0}
-      onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+    <input type="number" inputMode="decimal" min={0} value={Number.isFinite(value) ? value : 0}
+      onChange={(e) => onChange(Math.min(1e10, Math.max(0, parseFloat(e.target.value) || 0)))}
       className={cn("h-9 w-full min-w-20 rounded-md border bg-background px-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring", className)} />
   );
 }
 export function Txt({ value, onChange, className, type = "text" }: { value: string; onChange: (s: string) => void; className?: string; type?: string }) {
-  return <input type={type} value={value} onChange={(e) => onChange(e.target.value)}
+  return <input type={type} maxLength={200} value={value} onChange={(e) => onChange(e.target.value)}
     className={cn("h-9 w-full min-w-24 rounded-md border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring", className)} />;
 }
 export function Sel<T extends string>({ value, onChange, options, className }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; className?: string }) {

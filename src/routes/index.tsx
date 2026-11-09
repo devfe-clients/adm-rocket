@@ -171,14 +171,14 @@ function Dashboard() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Faturamento total</span><DollarSign className="size-4" />
           </div>
-          <p className="font-display text-xl md:text-2xl font-bold tabular-nums">{brl(data.revenue)}</p>
+          <p className="font-display text-base min-[400px]:text-xl md:text-2xl font-bold tabular-nums break-words">{brl(data.revenue)}</p>
         </div>
 
         <div className="rounded-xl border bg-card p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Custos totais</span><Receipt className="size-4" />
           </div>
-          <p className="font-display text-xl md:text-2xl font-bold tabular-nums">{brl(data.costs)}</p>
+          <p className="font-display text-base min-[400px]:text-xl md:text-2xl font-bold tabular-nums break-words">{brl(data.costs)}</p>
         </div>
 
         <div className={cn("rounded-xl border bg-card p-4 space-y-2", data.profit < 0 && "border-destructive/30 bg-destructive/5")}>
@@ -186,7 +186,7 @@ function Dashboard() {
             <span>{data.profit < 0 ? "Déficit líquido" : data.profit === 0 ? "Sem lucro" : "Lucro líquido"}</span>
             {data.profit >= 0 ? <TrendingUp className="size-4 text-success" /> : <TrendingDown className="size-4 text-destructive" />}
           </div>
-          <p className={cn("font-display text-xl md:text-2xl font-bold tabular-nums", data.profit >= 0 ? "text-success" : "text-destructive")}>
+          <p className={cn("font-display text-base min-[400px]:text-xl md:text-2xl font-bold tabular-nums break-words", data.profit >= 0 ? "text-success" : "text-destructive")}>
             {brl(data.profit)}
           </p>
           <span className={cn(
@@ -203,7 +203,7 @@ function Dashboard() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>A pagar pendente ({data.pendingCount})</span><AlertCircle className="size-4 text-primary" />
           </div>
-          <p className="font-display text-xl md:text-2xl font-bold tabular-nums text-primary">{brl(data.pendingTotal)}</p>
+          <p className="font-display text-base min-[400px]:text-xl md:text-2xl font-bold tabular-nums break-words text-primary">{brl(data.pendingTotal)}</p>
         </div>
       </div>
 
@@ -242,7 +242,7 @@ function Dashboard() {
             <span>Furo / Quebra de Bar</span>
             <Wine className={cn("size-4", data.totalLosses > 0 ? "text-amber-500" : "text-muted-foreground")} />
           </div>
-          <p className={cn("font-display text-xl md:text-2xl font-bold tabular-nums", data.totalLosses > 0 ? "text-amber-600 dark:text-amber-400" : "text-success")}>
+          <p className={cn("font-display text-base min-[400px]:text-xl md:text-2xl font-bold tabular-nums break-words", data.totalLosses > 0 ? "text-amber-600 dark:text-amber-400" : "text-success")}>
             {brl(data.totalLosses)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
@@ -254,7 +254,7 @@ function Dashboard() {
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
             <span>Contas críticas</span><AlertCircle className={cn("size-4", data.pendingCount > 0 ? "text-primary" : "text-muted-foreground")} />
           </div>
-          <p className="font-display text-xl md:text-2xl font-bold tabular-nums text-primary">{data.pendingCount}</p>
+          <p className="font-display text-base min-[400px]:text-xl md:text-2xl font-bold tabular-nums break-words text-primary">{data.pendingCount}</p>
           <p className="text-xs text-muted-foreground mt-1">
             {data.pendingCount > 0 ? `${brl(data.pendingTotal)} em aberto` : "Nenhuma pendência."}
           </p>
@@ -262,7 +262,7 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <section className="lg:col-span-3 rounded-xl border bg-card p-4 flex flex-col justify-between">
+        <section className="lg:col-span-3 min-w-0 rounded-xl border bg-card p-4 flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
               <h2 className="font-semibold text-sm">Lucro por evento</h2>
