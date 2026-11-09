@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis,
   PieChart, Pie, Legend,
@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/AppShell";
 import { PeriodFilter } from "@/components/fields";
 import { useStore } from "@/lib/store";
 import { usePeriod } from "@/lib/usePeriod";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { brl, eventDRE, inPeriod, sum } from "@/lib/calc";
 import { cn } from "@/lib/utils";
 
@@ -81,9 +82,11 @@ const KindBadge = ({ kind }: { kind: Row["kind"] }) => {
 };
 
 function Dashboard() {
+  const isMobile = useIsMobile();
   const { db } = useStore();
   const p = usePeriod();
   const cname = (id: string) => db.companies.find((c) => c.id === id)?.short ?? id;
+  const [eventView, setEventView] = useState<"top10" | "deficit" | "all">("top10");
 
   const data = useMemo(() => {
     const evs = db.events
@@ -142,6 +145,18 @@ function Dashboard() {
       houseChart, costPie, rows,
     };
   }, [db, p.month, p.year, p.company]);
+
+  const deficitCount = useMemo(() => data.evs.filter((x) => x.d.profit < 0).length, [data.evs]);
+
+  const chartEvents = useMemo(() => {
+    if (eventView === "deficit") {
+      return data.evs.filter((x) => x.d.profit < 0);
+    }
+    if (eventView === "top10") {
+      return data.evs.slice(0, 10);
+    }
+    return data.evs;
+  }, [data.evs, eventView]);
 
   const PIE_COLORS = ["#e8521a", "#f97316", "#fbbf24", "#34d399", "#60a5fa", "#a78bfa", "#f472b6"];
 
@@ -247,24 +262,100 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <section className="lg:col-span-3 rounded-xl border bg-card p-4">
-          <h2 className="font-semibold text-sm mb-4">Lucro por evento</h2>
+        <section className="lg:col-span-3 rounded-xl border bg-card p-4 flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 className="font-semibold text-sm">Lucro por evento</h2>
+              <p className="text-[11px] text-muted-foreground">
+                {eventView === "top10" && `Exibindo os ${Math.min(10, data.evs.length)} mais lucrativos`}
+                {eventView === "deficit" && `${deficitCount} ${deficitCount === 1 ? "evento com prejuízo" : "eventos com prejuízo"}`}
+                {eventView === "all" && `Todos os ${data.evs.length} eventos`}
+              </p>
+            </div>
+            {data.evs.length > 0 && (
+              <div className="flex items-center gap-1 rounded-lg bg-muted/60 p-1 text-xs self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setEventView("top10")}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 font-medium transition-colors",
+                    eventView === "top10" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Top 10
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventView("deficit")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-colors",
+                    eventView === "deficit" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+                    deficitCount > 0 && eventView !== "deficit" && "text-destructive"
+                  )}
+                >
+                  Prejuízos
+                  {deficitCount > 0 && (
+                    <span className="rounded-full bg-destructive/15 text-destructive px-1.5 py-0.2 text-[10px] font-bold">
+                      {deficitCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventView("all")}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 font-medium transition-colors",
+                    eventView === "all" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Todos ({data.evs.length})
+                </button>
+              </div>
+            )}
+          </div>
+
           {data.evs.length === 0 ? (
             <p className="text-sm text-muted-foreground py-10 text-center">Nenhum evento no período.</p>
+          ) : eventView === "deficit" && chartEvents.length === 0 ? (
+            <div className="h-56 flex flex-col items-center justify-center text-center p-4">
+              <p className="text-sm font-semibold text-success">Nenhum evento com prejuízo!</p>
+              <p className="text-xs text-muted-foreground mt-1">Todos os {data.evs.length} eventos fecharam com resultado positivo ou zerados.</p>
+            </div>
           ) : (
-            <div className="h-56">
-              <ResponsiveContainer>
-                <BarChart data={data.evs.map(({ e, d }) => ({ name: e.name, Lucro: Math.round(d.profit) }))} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={36} axisLine={false} tickLine={false} />
-                  <Tooltip content={<DarkTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.4 }} />
-                  <Bar dataKey="Lucro" radius={[6, 6, 0, 0]} maxBarSize={56}>
-                    {data.evs.map(({ e, d }) => (
-                      <Cell key={e.id} fill={d.profit >= 0 ? "var(--success)" : "var(--destructive)"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className={cn("overflow-x-auto", isMobile ? "h-72" : "h-56")}>
+              <div
+                className="h-full"
+                style={{
+                  minWidth: (isMobile || chartEvents.length > 8)
+                    ? `${Math.max(chartEvents.length * (isMobile ? 65 : 55), isMobile ? 480 : 0)}px`
+                    : "100%",
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartEvents.map(({ e, d }) => ({ name: e.name, Lucro: Math.round(d.profit) }))}
+                    margin={{ top: 4, right: 8, bottom: isMobile ? 40 : 4, left: 0 }}
+                  >
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 10 }}
+                      interval={0}
+                      axisLine={false}
+                      tickLine={false}
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 65 : 24}
+                    />
+                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} width={36} axisLine={false} tickLine={false} />
+                    <Tooltip content={<DarkTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.4 }} />
+                    <Bar dataKey="Lucro" radius={[6, 6, 0, 0]} maxBarSize={56}>
+                      {chartEvents.map(({ e, d }) => (
+                        <Cell key={e.id} fill={d.profit >= 0 ? "var(--success)" : "var(--destructive)"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
         </section>
