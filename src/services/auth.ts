@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dbData = seed();
           await setDoc(doc(firestore, "rocket-gestao/db-v1"), dbData);
         }
-        const appUser = dbData.users.find((u: import("@/lib/types").AppUser) => u.email === fbUser.email) ?? null;
+        const appUser = dbData.users.find((u: import("@/lib/types").AppUser) => u.email.toLowerCase() === (fbUser.email ?? "").toLowerCase()) ?? null;
         if (!appUser) {
           setError("Usuário sem permissão. Contate o administrador.");
           await firebaseSignOut(auth);
