@@ -28,6 +28,7 @@ function Finance() {
   const pays = db.payables.filter((x) => p.matchCompany(x.companyId) && inPeriod(x.due, p.month, p.year)).sort((a, b) => a.due.localeCompare(b.due));
   const recs = db.receivables.filter((x) => p.matchCompany(x.companyId) && inPeriod(x.date, p.month, p.year)).sort((a, b) => a.date.localeCompare(b.date));
   const cats = db.settings.categories.map((c) => ({ value: c, label: c }));
+  const rcats = (db.settings.revenueCategories ?? []).map((c) => ({ value: c, label: c }));
 
   return (
     <div>
@@ -61,12 +62,13 @@ function Finance() {
           <Summary items={[["Total", sum(recs.map((x) => x.value))], ["Recebido", sum(recs.filter((x) => x.paid).map((x) => x.value))], ["Pendente", sum(recs.filter((x) => !x.paid).map((x) => x.value))]]} />
           <div className="rounded-xl border bg-card overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted text-xs text-muted-foreground"><tr>{["Cliente/Origem", "Empresa", "Data", "Valor", "Vencimento", "Pago"].map((h) => <th key={h} className="p-2 text-left font-medium">{h}</th>)}<th /></tr></thead>
+              <thead className="bg-muted text-xs text-muted-foreground"><tr>{["Cliente/Origem", "Empresa", "Tipo de receita", "Data", "Valor", "Vencimento", "Pago"].map((h) => <th key={h} className="p-2 text-left font-medium">{h}</th>)}<th /></tr></thead>
               <tbody>{recs.map((x) => {
                 const s = (fn: (r: typeof x) => void) => update((d) => { const r = d.receivables.find((y) => y.id === x.id); if (r) fn(r); });
                 return (<tr key={x.id} className="border-t">
                   <td className={td}><Txt value={x.client} onChange={(v) => s((r) => { r.client = v; })} /></td>
                   <td className={td}><Sel value={x.companyId} onChange={(v) => s((r) => { r.companyId = v; })} options={companies} /></td>
+                  <td className={td}><Sel value={x.category ?? ""} onChange={(v) => s((r) => { r.category = v; })} options={[{ value: "", label: "—" }, ...(x.category && !rcats.some((c) => c.value === x.category) ? [{ value: x.category, label: x.category }] : []), ...rcats]} /></td>
                   <td className={td}><Txt type="date" value={x.date} onChange={(v) => s((r) => { r.date = v; })} /></td>
                   <td className={td}><Num value={x.value} onChange={(v) => s((r) => { r.value = v; })} /></td>
                   <td className={td}><Txt type="date" value={x.due} onChange={(v) => s((r) => { r.due = v; })} /></td>
@@ -74,7 +76,7 @@ function Finance() {
                   <td className={td}><button onClick={() => update((d) => { d.receivables = d.receivables.filter((y) => y.id !== x.id); })} className="p-2 text-muted-foreground hover:text-destructive" aria-label="Remover"><Trash2 className="size-4" /></button></td>
                 </tr>); })}</tbody>
             </table>
-            <div className="p-2 border-t"><Button variant="ghost" size="sm" onClick={() => update((d) => { d.receivables.push({ id: uid(), client: "", companyId: defCo, date: today, value: 0, due: today, paid: false }); })}><Plus /> Novo recebimento</Button></div>
+            <div className="p-2 border-t"><Button variant="ghost" size="sm" onClick={() => update((d) => { d.receivables.push({ id: uid(), client: "", companyId: defCo, date: today, value: 0, due: today, paid: false, category: d.settings.revenueCategories?.[0] ?? "" }); })}><Plus /> Novo recebimento</Button></div>
           </div>
         </TabsContent>
       </Tabs>

@@ -3,7 +3,7 @@ import type { DB } from "./types";
 import { getRepository } from "@/services/repository";
 import { hydrateFirebase } from "@/services/firebaseRepository";
 import { dataProvider } from "@/services/config";
-import { seed } from "@/services/seed";
+import { seed, migrate } from "@/services/seed";
 import { AuthContext } from "@/services/auth";
 
 type Ctx = { db: DB; update: (fn: (db: DB) => void) => void; ready: boolean };
@@ -15,15 +15,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (dataProvider === "firebase") {
       hydrateFirebase().then(() => {
-        setDb(getRepository().load());
+        setDb(migrate(getRepository().load()));
         setReady(true);
       }).catch((e) => {
         console.error("Falha ao hidratar Firebase:", e);
-        setDb(getRepository().load());
+        setDb(migrate(getRepository().load()));
         setReady(true);
       });
     } else {
-      setDb(getRepository().load());
+      setDb(migrate(getRepository().load()));
       setReady(true);
     }
   }, []);
