@@ -18,12 +18,12 @@ export interface RocketEvent {
 }
 
 export interface Payable { id: string; name: string; companyId: CompanyId; value: number; due: string; category: string; type: "Despesa" | "Investimento"; paid: boolean }
-export interface Receivable { id: string; client: string; companyId: CompanyId; date: string; value: number; due: string; paid: boolean }
+export interface Receivable { id: string; client: string; companyId: CompanyId; date: string; value: number; due: string; paid: boolean; category?: string }
 
 export type Role = "diretor" | "gerente";
 export interface AppUser { id: string; name: string; email: string; role: Role; companyIds: CompanyId[] }
 
-export interface Settings { barMode: "detalhado" | "consolidado"; commissionMode: "percentual" | "livre"; commissionPct: number; categories: string[] }
+export interface Settings { barMode: "detalhado" | "consolidado"; commissionMode: "percentual" | "livre"; commissionPct: number; categories: string[]; revenueCategories?: string[] }
 
 export interface DB {
   companies: Company[]; events: RocketEvent[]; payables: Payable[]; receivables: Receivable[];

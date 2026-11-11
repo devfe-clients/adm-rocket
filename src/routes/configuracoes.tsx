@@ -22,6 +22,7 @@ function SettingsPage() {
   const { db, update, isDirector } = useStore();
   const [cat, setCat] = useState("");
   const [co, setCo] = useState("");
+  const [rc, setRc] = useState("");
   if (!isDirector) return <NoAccess />;
   const s = db.settings;
   return (
@@ -47,7 +48,12 @@ function SettingsPage() {
           <div className="flex gap-2"><Txt value={co} onChange={setCo} /><Button disabled={!co.trim()} onClick={() => { update((d) => { d.companies.push({ id: co.toLowerCase().replace(/\W+/g, "-") + "-" + Date.now().toString(36), name: co, short: co }); d.users.filter((u) => u.role === "diretor").forEach((u) => u.companyIds.push(d.companies.at(-1)!.id)); }); setCo(""); }}><Plus /> Empresa</Button></div>
         </div>
       </Card>
-      <Card title="Categorias financeiras">
+      <Card title="Tipos de receita">
+        <div className="flex flex-wrap gap-2 mb-3">{(s.revenueCategories ?? []).map((c) => (
+          <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">{c}<button aria-label={`Remover ${c}`} onClick={() => update((d) => { d.settings.revenueCategories = (d.settings.revenueCategories ?? []).filter((x) => x !== c); })}><X className="size-3" /></button></span>))}</div>
+        <div className="flex gap-2"><Txt value={rc} onChange={setRc} /><Button disabled={!rc.trim()} onClick={() => { update((d) => { (d.settings.revenueCategories ??= []).push(rc.trim()); }); setRc(""); }}><Plus /> Receita</Button></div>
+      </Card>
+      <Card title="Categorias de despesa">
         <div className="flex flex-wrap gap-2 mb-3">{s.categories.map((c) => (
           <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">{c}<button aria-label={`Remover ${c}`} onClick={() => update((d) => { d.settings.categories = d.settings.categories.filter((x) => x !== c); })}><X className="size-3" /></button></span>))}</div>
         <div className="flex gap-2"><Txt value={cat} onChange={setCat} /><Button disabled={!cat.trim()} onClick={() => { update((d) => { d.settings.categories.push(cat.trim()); }); setCat(""); }}><Plus /> Categoria</Button></div>
