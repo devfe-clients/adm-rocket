@@ -6,7 +6,7 @@ import { dataProvider } from "@/services/config";
 import { seed, migrate } from "@/services/seed";
 import { AuthContext } from "@/services/auth";
 
-type Ctx = { db: DB; update: (fn: (db: DB) => void) => void; ready: boolean };
+type Ctx = { db: DB; update: (fn: (db: DB) => void) => void; refresh: () => void; ready: boolean };
 const StoreCtx = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -29,7 +29,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
   const update = (fn: (db: DB) => void) =>
     setDb((prev) => { const next = structuredClone(prev); fn(next); getRepository().save(next); return next; });
-  return <StoreCtx.Provider value={{ db, update, ready }}>{children}</StoreCtx.Provider>;
+  const refresh = () => setDb(migrate(getRepository().load()));
+  return <StoreCtx.Provider value={{ db, update, refresh, ready }}>{children}</StoreCtx.Provider>;
 }
 
 export function useStore() {
