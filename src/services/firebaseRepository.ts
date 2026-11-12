@@ -33,6 +33,10 @@ async function hydrate(): Promise<void> {
 
 export const hydrateFirebase = (): Promise<void> => hydrate();
 
+export function cacheUsers(users: DB["users"]): void {
+  if (cache) cache = { ...cache, users };
+}
+
 export const firebaseRepository: Repository = {
   load(): DB {
     return cache ?? seed();

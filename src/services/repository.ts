@@ -2,6 +2,8 @@ import type { DB } from "@/lib/types";
 import { dataProvider } from "./config";
 import { seed } from "./seed";
 import { firebaseRepository } from "./firebaseRepository";
+import type { AppUser } from "@/lib/types";
+import { userSaveSchema } from "./user-management";
 
 export interface Repository { load(): DB; save(db: DB): void }
 
@@ -23,3 +25,15 @@ export function getRepository(): Repository {
 }
 
 export const resetLocal = () => { localStorage.removeItem(KEY); location.reload(); };
+
+// Account writes remain behind the repository boundary; passwords never enter DB.
+export async function saveUsers(users: (AppUser & { password?: string })[]): Promise<AppUser[]> {
+  if (dataProvider !== "firebase") throw new Error("O modo de prévia não cria contas reais. Configure o Firebase para cadastrar usuários.");
+  const { auth } = await import("./firebase");
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Entre novamente antes de salvar usuários.");
+  const token = await currentUser.getIdToken(true);
+  const data = userSaveSchema.parse({ users, token });
+  const { saveUserAccounts } = await import("./users.functions");
+  return saveUserAccounts({ data });
+}

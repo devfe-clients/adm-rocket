@@ -32,3 +32,4 @@ use the editor.
 ## Architecture
 - All persistence goes through `src/services/repository.ts` (`Repository` interface; local/mock now, Firebase later via `src/services/config.ts` env vars) — keeps the data source swappable without touching pages.
 - Financial math (event DRE, bar losses, commissions) lives only in `src/lib/calc.ts` with tests in `calc.test.ts` — one source of truth for every screen.
+- User provisioning goes through the repository and a Firebase-token-verified server function using REST/WebCrypto; administrative authority uses protected custom claims and a server-configured bootstrap allowlist, never the shared editable DB. Passwords stay transient and only go to Firebase Auth; user-list writes mask only users to preserve financial edits.
