@@ -22,7 +22,6 @@ export function migrate(db: DB): DB {
   return db;
 }
 
-// Banco inicial de entrega: só empresas, configurações e o diretor. Sem dados fictícios.
 export function seed(): DB {
   return {
     companies: [
@@ -34,7 +33,7 @@ export function seed(): DB {
     payables: [],
     receivables: [],
     users: [
-      { id: "u1", name: "Felipe (Diretor)", email: "fellipe@rocket.com.br", role: "diretor", companyIds: ["beach", "sea", "marina"] },
+      { id: "u1", name: "Fábio (Diretor)", email: "fabio@rocket.com.br", role: "diretor", companyIds: ["beach", "sea", "marina"] },
     ],
     currentUserId: "u1",
     settings: { barMode: "detalhado", commissionMode: "percentual", commissionPct: 5, categories: [...DEFAULT_EXPENSE_CATS], revenueCategories: [...DEFAULT_REVENUE_CATS] },

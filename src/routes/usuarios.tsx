@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Save, Mail, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Save, Mail, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { toast } from "sonner";
 import { NoAccess, PageHeader } from "@/components/AppShell";
@@ -11,6 +11,7 @@ import { auth } from "@/services/firebase";
 import { uid } from "@/services/seed";
 import { cn } from "@/lib/utils";
 import type { AppUser } from "@/lib/types";
+import { saveUserAccounts } from "@/services/users.functions";
 
 export const Route = createFileRoute("/usuarios")({
   head: () => ({ meta: [
@@ -26,6 +27,10 @@ function UsersPage() {
   const [userList, setUserList] = useState<AppUser[]>(db.users);
   const [isSaving, setIsSaving] = useState(false);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+
+  const [originalIds] = useState<Set<string>>(() => new Set(db.users.map((u) => u.id)));
 
   useEffect(() => {
     setUserList(db.users);
@@ -34,14 +39,43 @@ function UsersPage() {
   if (!isDirector) return <NoAccess />;
 
   const handleSave = async () => {
+
+    for (const u of userList) {
+      const pwd = passwords[u.id] ?? "";
+      const isNew = !originalIds.has(u.id);
+      if (isNew && pwd.length < 6) {
+        toast.error(`Preencha a senha inicial de "${u.name || u.email}" (mín. 6 caracteres).`);
+        return;
+      }
+      if (!isNew && pwd.length > 0 && pwd.length < 6) {
+        toast.error(`A nova senha de "${u.name || u.email}" precisa ter ao menos 6 caracteres.`);
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
-      update((d) => {
-        d.users = userList;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+
+      const payload = userList.map((u) => {
+        const pwd = passwords[u.id] ?? "";
+        return pwd.length >= 6 ? { ...u, password: pwd } : u;
       });
-      toast.success("Usuários salvos no banco com sucesso!");
-    } catch {
-      toast.error("Erro ao salvar usuários.");
+
+      const updatedUsers = await saveUserAccounts({
+        data: { token, users: payload },
+      });
+
+      update((d) => { d.users = updatedUsers; });
+      setPasswords({});
+      toast.success("Usuários e senhas salvos com sucesso!");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro ao salvar usuários.";
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }
@@ -73,14 +107,9 @@ function UsersPage() {
         />
       </div>
 
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground space-y-1">
-        <div className="flex items-center gap-1.5 font-semibold text-foreground text-sm">
-          <AlertCircle className="size-4 text-primary" />
-          Como liberar acesso para novos usuários
-        </div>
-        <p>1. Preencha o nome, e-mail e cargo abaixo e clique em <b>Salvar alterações</b>.</p>
-        <p>2. No <b>Firebase Console &gt; Authentication &gt; Usuários</b>, adicione o e-mail do usuário (ou use o botão "Enviar link de senha").</p>
-        <p>3. No <b>Firestore Database</b>, adicione o e-mail na coleção <b>authorized-emails</b> conforme a sua regra de segurança.</p>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
+        <AlertCircle className="size-4 text-primary mt-0.5 shrink-0" />
+        <span>Novos usuários precisam de uma senha inicial. Usuários existentes: deixe o campo de senha em branco para não alterar.</span>
       </div>
 
       <div className="space-y-3">
@@ -91,45 +120,80 @@ function UsersPage() {
 
           return (
             <div key={u.id} className="rounded-xl border bg-card p-4 space-y-3">
-              <div className="grid gap-3 md:grid-cols-[1fr_1.2fr_10rem_auto_auto] items-center">
-                <Txt
-                  value={u.name}
-                  onChange={(v) => updateUser({ name: v })}
-                />
-                <Txt
-                  value={u.email}
-                  onChange={(v) => updateUser({ email: v })}
-                />
-                <Sel
-                  value={u.role}
-                  onChange={(v) => updateUser({ role: v as "diretor" | "gerente" })}
-                  options={[
-                    { value: "diretor", label: "Diretor" },
-                    { value: "gerente", label: "Gerente/Operador" },
-                  ]}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  title="Enviar link para criar ou redefinir senha por e-mail"
-                  disabled={sendingEmailId === u.id || !u.email}
-                  onClick={() => handleSendReset(u.email, u.id)}
-                  className="gap-1.5 text-xs whitespace-nowrap"
-                >
-                  <Mail className="size-3.5" />
-                  {sendingEmailId === u.id ? "Enviando..." : "Link de senha"}
-                </Button>
-                <button
-                  type="button"
-                  disabled={u.id === db.currentUserId}
-                  onClick={() => setUserList((prev) => prev.filter((item) => item.id !== u.id))}
-                  className="p-2 text-muted-foreground hover:text-destructive disabled:opacity-30"
-                  aria-label="Remover"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
+            <div className="grid gap-3 md:grid-cols-[1fr_1.2fr_10rem_auto_auto] items-center">
+              <Txt
+                value={u.name}
+                onChange={(v) => updateUser({ name: v })}
+              />
+              <Txt
+                value={u.email}
+                onChange={(v) => updateUser({ email: v })}
+              />
+              <Sel
+                value={u.role}
+                onChange={(v) => updateUser({ role: v as "diretor" | "gerente" })}
+                options={[
+                  { value: "diretor", label: "Diretor" },
+                  { value: "gerente", label: "Gerente/Operador" },
+                ]}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                title="Enviar link para criar ou redefinir senha por e-mail"
+                disabled={sendingEmailId === u.id || !u.email}
+                onClick={() => handleSendReset(u.email, u.id)}
+                className="gap-1.5 text-xs whitespace-nowrap"
+              >
+                <Mail className="size-3.5" />
+                {sendingEmailId === u.id ? "Enviando..." : "Link de senha"}
+              </Button>
+              <button
+                type="button"
+                disabled={u.id === db.currentUserId}
+                onClick={() => setUserList((prev) => prev.filter((item) => item.id !== u.id))}
+                className="p-2 text-muted-foreground hover:text-destructive disabled:opacity-30"
+                aria-label="Remover"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <input
+                type={showPasswords[u.id] ? "text" : "password"}
+                value={passwords[u.id] ?? ""}
+                onChange={(e) =>
+                  setPasswords((prev) => ({ ...prev, [u.id]: e.target.value }))
+                }
+                placeholder={
+                  originalIds.has(u.id)
+                    ? "Nova senha (deixe em branco para manter)"
+                    : "Senha inicial (mín. 6 caracteres) *"
+                }
+                autoComplete="new-password"
+                className={cn(
+                  "w-full rounded-lg border bg-background px-3 py-2 pr-9 text-sm outline-none",
+                  "focus:ring-2 focus:ring-primary/40 transition",
+                  !originalIds.has(u.id) && (passwords[u.id] ?? "").length === 0
+                    ? "border-amber-400/60 placeholder:text-amber-600/70"
+                    : "border-border"
+                )}
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() =>
+                  setShowPasswords((prev) => ({ ...prev, [u.id]: !prev[u.id] }))
+                }
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPasswords[u.id]
+                  ? <EyeOff className="size-4" />
+                  : <Eye className="size-4" />}
+              </button>
+            </div>
 
               {u.role === "gerente" && (
                 <div className="flex flex-wrap gap-2 pt-1 border-t border-border/50">
