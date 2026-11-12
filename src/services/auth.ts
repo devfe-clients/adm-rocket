@@ -1,7 +1,5 @@
 import {
   signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User as FirebaseUser,
@@ -25,7 +23,6 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -88,17 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async () => {
-    setError(null);
-    try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Erro ao fazer login com Google";
-      setError(msg);
-      throw e;
-    }
-  };
-
   const signOut = async () => {
     if (dataProvider === "firebase") await firebaseSignOut(auth);
     setUser(null);
@@ -106,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return createElement(
     AuthContext.Provider,
-    { value: { user, loading, error, signIn, signInWithGoogle, signOut } },
+    { value: { user, loading, error, signIn, signOut } },
     children,
   );
 }

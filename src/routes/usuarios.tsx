@@ -71,10 +71,6 @@ function UsersPage() {
           title="Usuários e permissões"
           subtitle="Diretores veem tudo. Gerentes/Operadores lançam apenas nas empresas marcadas."
         />
-        <Button onClick={handleSave} disabled={isSaving} className="gap-2 shrink-0">
-          <Save className="size-4" />
-          {isSaving ? "Salvando..." : "Salvar alterações"}
-        </Button>
       </div>
 
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground space-y-1">
