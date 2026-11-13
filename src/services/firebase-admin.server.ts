@@ -32,7 +32,8 @@ export async function saveFirebaseUsers(input: UserSaveInput, rawCredentials: st
   const self = input.users.find(u => u.email === callerEmail);
   if (!self || self.role !== "diretor") throw new Error("Você não pode remover ou rebaixar seu próprio acesso.");
 
-  const key = await importPKCS8(credentials.private_key, "RS256");
+  const privateKey = credentials.private_key.replace(/\\n/g, "\n");
+const key = await importPKCS8(privateKey, "RS256");
   const assertion = await new SignJWT({ scope: "https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/datastore" })
     .setProtectedHeader({ alg: "RS256" }).setIssuer(credentials.client_email).setAudience("https://oauth2.googleapis.com/token")
     .setIssuedAt().setExpirationTime("5m").sign(key);
