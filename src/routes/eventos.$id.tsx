@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Num, PaidToggle, Sel, Txt } from "@/components/fields";
 import { useStore } from "@/lib/store";
 import { barLine, boxCommission, brl, cashierNet, eventDRE, sum } from "@/lib/calc";
-import { COST_CATEGORIES, type RocketEvent, type Cashier, type Box, type Cost, type BarItem, type Courtesy } from "@/lib/types";
+import { COST_CATEGORIES, EVENT_REVENUE_CATEGORIES, type RocketEvent, type Cashier, type Box, type Cost, type BarItem, type Courtesy, type EventRevenue } from "@/lib/types";
 import { uid } from "@/services/seed";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +52,11 @@ function EventPage() {
   const s = db.settings;
   const d = eventDRE(e, s);
   const set = (fn: (ev: RocketEvent) => void) => update((db) => { const ev = db.events.find((x) => x.id === id); if (ev) fn(ev); });
-  type ListKey = "cashiers" | "boxes" | "costs" | "bar" | "courtesies";
+  type ListKey = "cashiers" | "boxes" | "revenues" | "costs" | "bar" | "courtesies";
   const ops = <T extends { id: string }>(k: ListKey, blank: () => Omit<T, "id">) => ({
-    rows: e[k] as unknown as T[],
+    rows: (e[k] ?? []) as unknown as T[],
     onChange: (rid: string, fn: (r: T) => void) => set((ev) => { const r = (ev[k] as unknown as T[]).find((x) => x.id === rid); if (r) fn(r); }),
-    onAdd: () => set((ev) => { (ev[k] as unknown[]).push({ id: uid(), ...blank() }); }),
+    onAdd: () => set((ev) => { if (!ev[k]) (ev[k] as unknown) = []; (ev[k] as unknown[]).push({ id: uid(), ...blank() }); }),
     onRemove: (rid: string) => set((ev) => { (ev[k] as { id: string }[]) = (ev[k] as { id: string }[]).filter((x) => x.id !== rid) as never; }),
   });
   const n = <T,>(key: keyof T) => (r: T, st: (fn: (r: T) => void) => void) => <Num value={r[key] as number} onChange={(v) => st((x) => { (x[key] as number) = v; })} />;
@@ -74,7 +74,7 @@ function EventPage() {
 
       <Tabs defaultValue="id">
         <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap">
-          {([["id", "Evento"], ["caixas", "Caixas"], ["camarotes", "Camarotes"], ["custos", "Custos"], ["bar", "Bar"], ["dre", "DRE"]] as const).map(([v, l]) => <TabsTrigger key={v} value={v} className="py-2">{l}</TabsTrigger>)}
+          {([["id", "Evento"], ["caixas", "Caixas"], ["receitas", "Receitas"], ["custos", "Custos"], ["bar", "Bar"], ["dre", "DRE"]] as const).map(([v, l]) => <TabsTrigger key={v} value={v} className="py-2">{l}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="id" className="mt-4">
@@ -96,14 +96,14 @@ function EventPage() {
           <p className="text-xs text-muted-foreground mt-2">Sangria é o dinheiro retirado do caixa durante a madrugada — não altera o total, serve para conferência do espécie.</p>
         </TabsContent>
 
-        <TabsContent value="camarotes" className="mt-4">
-          <Grid {...ops<Box>("boxes", () => ({ lot: "", client: "", value: 0, consumption: 0, deposit: 0, doorCard: 0, doorCash: 0, seller: "", commission: 0 }))} cols={[
-            { h: "Lote/Camarote", render: t("lot") }, { h: "Cliente", render: t("client") }, { h: "Valor venda", render: n("value") }, { h: "Consumação", render: n("consumption") },
-            { h: "Sinal", render: n("deposit") }, { h: "A receber", render: (r) => <Out v={r.value - r.deposit} /> }, { h: "Porta cartão", render: n("doorCard") }, { h: "Porta dinheiro", render: n("doorCash") },
-            { h: "Vendedor/Promoter", render: t("seller") },
-            { h: s.commissionMode === "percentual" ? `Comissão (${s.commissionPct}%)` : "Comissão", render: (r, st) => s.commissionMode === "percentual" ? <Out v={boxCommission(r.value, r.commission, s)} /> : <Num value={r.commission} onChange={(v) => st((x) => { x.commission = v; })} /> },
-          ]} footer={<tfoot className="border-t font-bold"><tr><td className="p-2" colSpan={2}>Total</td><td className="p-2 text-right">{brl(d.boxes)}</td><td colSpan={6} /><td className="p-2 text-right">{brl(d.commissions)}</td><td /></tr></tfoot>} />
-          <p className="text-xs text-muted-foreground mt-2">Consumação não é cortesia: já está paga no valor do camarote.</p>
+        <TabsContent value="receitas" className="mt-4">
+          <Grid {...ops<EventRevenue>("revenues", () => ({ item: "", category: "Ticketeira" as const, value: 0, received: false }))} cols={[
+            { h: "Item", render: t("item") },
+            { h: "Categoria", render: (r, st) => <Sel value={r.category} onChange={(v) => st((x) => { x.category = v; })} options={EVENT_REVENUE_CATEGORIES.map((c) => ({ value: c, label: c }))} /> },
+            { h: "Valor", render: n("value") },
+            { h: "Recebido?", render: (r, st) => <PaidToggle paid={r.received ?? false} onToggle={() => st((x) => { x.received = !x.received; })} /> },
+          ]} footer={<tfoot className="border-t font-bold"><tr><td className="p-2" colSpan={2}>Total</td><td className="p-2 text-right tabular-nums">{brl(d.revenues)}</td><td colSpan={2} /><td /></tr></tfoot>} />
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2">{EVENT_REVENUE_CATEGORIES.map((c) => <Stat key={c} label={c} v={d.revenuesByCategory?.[c] ?? 0} />)}</div>
         </TabsContent>
 
         <TabsContent value="custos" className="mt-4">
@@ -112,7 +112,7 @@ function EventPage() {
             { h: "Categoria", render: (r, st) => <Sel value={r.category} onChange={(v) => st((x) => { x.category = v; })} options={COST_CATEGORIES.map((c) => ({ value: c, label: c }))} /> },
             { h: "Valor", render: n("value") }, { h: "Pago?", render: (r, st) => <PaidToggle paid={r.paid} onToggle={() => st((x) => { x.paid = !x.paid; })} /> },
           ]} />
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2">{COST_CATEGORIES.map((c) => <Stat key={c} label={c} v={d.byCategory[c] ?? 0} />)}</div>
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-6 gap-2">{COST_CATEGORIES.map((c) => <Stat key={c} label={c} v={d.byCategory[c] ?? 0} />)}</div>
         </TabsContent>
 
         <TabsContent value="bar" className="mt-4 space-y-4">
@@ -136,7 +136,7 @@ function EventPage() {
         <TabsContent value="dre" className="mt-4">
           <div className="rounded-xl border bg-card p-4 max-w-xl space-y-1 text-sm">
             <h3 className="font-semibold text-base mb-2">Resumo DRE — {e.name}</h3>
-            <L k="Caixas (líquido)" v={d.cashiers} /><L k="Camarotes" v={d.boxes} /><L k="Receita total de entradas" v={d.revenue} b />
+            <L k="Caixas (líquido)" v={d.cashiers} /><L k="Receitas do evento" v={d.revenues} /><L k="Receita total de entradas" v={d.revenue} b />
             <div className="h-2" />
             {COST_CATEGORIES.map((c) => <L key={c} k={c} v={-(d.byCategory[c] ?? 0)} />)}
             <L k={`Bar (${s.barMode})`} v={-d.bar} /><L k="Comissões camarote" v={-d.commissions} /><L k="Total de custos" v={-d.costs} b />

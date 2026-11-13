@@ -1,8 +1,19 @@
 export type CompanyId = string;
 export interface Company { id: CompanyId; name: string; short: string }
 
-export type CostCategory = "Estrutura" | "Atrações/Logística" | "Pessoal/Equipe" | "Divulgação/Marketing" | "Bar/Insumos";
-export const COST_CATEGORIES: CostCategory[] = ["Estrutura", "Atrações/Logística", "Pessoal/Equipe", "Divulgação/Marketing", "Bar/Insumos"];
+export type CostCategory = "Estrutura" | "Atrações/Logística" | "Pessoal/Equipe" | "Divulgação/Marketing" | "Bar/Insumos" | "Comissões";
+export const COST_CATEGORIES: CostCategory[] = ["Estrutura", "Atrações/Logística", "Pessoal/Equipe", "Divulgação/Marketing", "Bar/Insumos", "Comissões"];
+
+export type EventRevenueCategory = "Ticketeira" | "Bilheteria" | "PDV" | "Camarote" | "Souvenir";
+export const EVENT_REVENUE_CATEGORIES: EventRevenueCategory[] = ["Ticketeira", "Bilheteria", "PDV", "Camarote", "Souvenir"];
+
+export interface EventRevenue {
+  id: string;
+  item: string;
+  category: EventRevenueCategory;
+  value: number;
+  received?: boolean;
+}
 
 export interface Cashier { id: string; operator: string; card: number; cash: number; pix: number; refunds: number; sangria: number }
 export interface Box { id: string; lot: string; client: string; value: number; consumption: number; deposit: number; doorCard: number; doorCash: number; seller: string; commission: number }
@@ -13,7 +24,7 @@ export interface Courtesy { id: string; product: string; qty: number; note: stri
 export interface RocketEvent {
   id: string; companyId: CompanyId; name: string; date: string; partner: string;
   houseShare: number; // 0..1
-  cashiers: Cashier[]; boxes: Box[]; costs: Cost[]; bar: BarItem[]; courtesies: Courtesy[];
+  cashiers: Cashier[]; boxes?: Box[]; revenues?: EventRevenue[]; costs: Cost[]; bar: BarItem[]; courtesies: Courtesy[];
   barConsolidated: number;
 }
 
