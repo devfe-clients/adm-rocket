@@ -13,7 +13,6 @@ async function request(url: string, token: string, body?: unknown) {
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   if (!response.ok) {
-    // Never include provider bodies: they can contain credential or password data.
     throw new Error(`Firebase recusou a operação (${response.status}). Confira as permissões administrativas e tente novamente.`);
   }
   return response.json();

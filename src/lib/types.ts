@@ -23,7 +23,7 @@ export interface Receivable { id: string; client: string; companyId: CompanyId; 
 export type Role = "diretor" | "gerente";
 export interface AppUser { id: string; name: string; email: string; role: Role; companyIds: CompanyId[] }
 
-export interface Settings { barMode: "detalhado" | "consolidado"; commissionMode: "percentual" | "livre"; commissionPct: number; categories: string[]; revenueCategories?: string[] }
+export interface Settings { barMode: "detalhado" | "consolidado"; commissionMode: "percentual" | "livre"; commissionPct: number; categories: string[]; revenueCategories?: string[]; companyCategories?: Record<string, string[]>; companyRevenueCategories?: Record<string, string[]> }
 
 export interface DB {
   companies: Company[]; events: RocketEvent[]; payables: Payable[]; receivables: Receivable[];

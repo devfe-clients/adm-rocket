@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { NoAccess, PageHeader } from "@/components/AppShell";
-import { Num, Txt } from "@/components/fields";
+import { Num, Sel, Txt } from "@/components/fields";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/lib/store";
@@ -23,8 +23,17 @@ function SettingsPage() {
   const [cat, setCat] = useState("");
   const [co, setCo] = useState("");
   const [rc, setRc] = useState("");
+  const [selCo, setSelCo] = useState<string>("geral");
   if (!isDirector) return <NoAccess />;
   const s = db.settings;
+
+  const currentRevenueCats = selCo === "geral"
+    ? (s.revenueCategories ?? [])
+    : (s.companyRevenueCategories?.[selCo] ?? []);
+
+  const currentExpenseCats = selCo === "geral"
+    ? s.categories
+    : (s.companyCategories?.[selCo] ?? []);
   return (
     <div className="max-w-3xl space-y-4">
       <PageHeader title="Configurações" />
@@ -48,15 +57,117 @@ function SettingsPage() {
           <div className="flex gap-2"><Txt value={co} onChange={setCo} /><Button disabled={!co.trim()} onClick={() => { update((d) => { d.companies.push({ id: co.toLowerCase().replace(/\W+/g, "-") + "-" + Date.now().toString(36), name: co, short: co }); d.users.filter((u) => u.role === "diretor").forEach((u) => u.companyIds.push(d.companies.at(-1)!.id)); }); setCo(""); }}><Plus /> Empresa</Button></div>
         </div>
       </Card>
-      <Card title="Tipos de receita">
-        <div className="flex flex-wrap gap-2 mb-3">{(s.revenueCategories ?? []).map((c) => (
-          <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">{c}<button aria-label={`Remover ${c}`} onClick={() => update((d) => { d.settings.revenueCategories = (d.settings.revenueCategories ?? []).filter((x) => x !== c); })}><X className="size-3" /></button></span>))}</div>
-        <div className="flex gap-2"><Txt value={rc} onChange={setRc} /><Button disabled={!rc.trim()} onClick={() => { update((d) => { (d.settings.revenueCategories ??= []).push(rc.trim()); }); setRc(""); }}><Plus /> Receita</Button></div>
-      </Card>
-      <Card title="Categorias de despesa">
-        <div className="flex flex-wrap gap-2 mb-3">{s.categories.map((c) => (
-          <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">{c}<button aria-label={`Remover ${c}`} onClick={() => update((d) => { d.settings.categories = d.settings.categories.filter((x) => x !== c); })}><X className="size-3" /></button></span>))}</div>
-        <div className="flex gap-2"><Txt value={cat} onChange={setCat} /><Button disabled={!cat.trim()} onClick={() => { update((d) => { d.settings.categories.push(cat.trim()); }); setCat(""); }}><Plus /> Categoria</Button></div>
+      <Card title="Categorias financeiras (por empresa)">
+        <div className="mb-4 space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">Configurar categorias para:</label>
+          <Sel
+            value={selCo}
+            onChange={setSelCo}
+            options={[
+              { value: "geral", label: "Categorias Gerais (padrão)" },
+              ...db.companies.map((c) => ({ value: c.id, label: c.name }))
+            ]}
+          />
+          {selCo !== "geral" && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Categorias exclusivas para esta empresa. Se deixar vazia, ela usará as categorias gerais.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-4 pt-2 border-t">
+          <div>
+            <h3 className="text-sm font-semibold mb-2">Tipos de receita</h3>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {currentRevenueCats.map((c) => (
+                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">
+                  {c}
+                  <button
+                    aria-label={`Remover ${c}`}
+                    onClick={() => update((d) => {
+                      if (selCo === "geral") {
+                        d.settings.revenueCategories = (d.settings.revenueCategories ?? []).filter((x) => x !== c);
+                      } else {
+                        d.settings.companyRevenueCategories ??= {};
+                        d.settings.companyRevenueCategories[selCo] = (d.settings.companyRevenueCategories[selCo] ?? []).filter((x) => x !== c);
+                      }
+                    })}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+              {currentRevenueCats.length === 0 && (
+                <span className="text-xs text-muted-foreground italic">Nenhuma exclusiva (usando gerais)</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Txt value={rc} onChange={setRc} />
+              <Button
+                disabled={!rc.trim()}
+                onClick={() => {
+                  update((d) => {
+                    if (selCo === "geral") {
+                      (d.settings.revenueCategories ??= []).push(rc.trim());
+                    } else {
+                      d.settings.companyRevenueCategories ??= {};
+                      (d.settings.companyRevenueCategories[selCo] ??= []).push(rc.trim());
+                    }
+                  });
+                  setRc("");
+                }}
+              >
+                <Plus /> Receita
+              </Button>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t">
+            <h3 className="text-sm font-semibold mb-2">Categorias de despesa</h3>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {currentExpenseCats.map((c) => (
+                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">
+                  {c}
+                  <button
+                    aria-label={`Remover ${c}`}
+                    onClick={() => update((d) => {
+                      if (selCo === "geral") {
+                        d.settings.categories = d.settings.categories.filter((x) => x !== c);
+                      } else {
+                        d.settings.companyCategories ??= {};
+                        d.settings.companyCategories[selCo] = (d.settings.companyCategories[selCo] ?? []).filter((x) => x !== c);
+                      }
+                    })}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+              {currentExpenseCats.length === 0 && (
+                <span className="text-xs text-muted-foreground italic">Nenhuma exclusiva (usando gerais)</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Txt value={cat} onChange={setCat} />
+              <Button
+                disabled={!cat.trim()}
+                onClick={() => {
+                  update((d) => {
+                    if (selCo === "geral") {
+                      d.settings.categories.push(cat.trim());
+                    } else {
+                      d.settings.companyCategories ??= {};
+                      (d.settings.companyCategories[selCo] ??= []).push(cat.trim());
+                    }
+                  });
+                  setCat("");
+                }}
+              >
+                <Plus /> Categoria
+              </Button>
+            </div>
+          </div>
+        </div>
       </Card>
     </div>
   );
