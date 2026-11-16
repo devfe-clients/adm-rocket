@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { DB } from "./types";
 import { getRepository } from "@/services/repository";
 import { hydrateFirebase } from "@/services/firebaseRepository";
@@ -6,30 +6,79 @@ import { dataProvider } from "@/services/config";
 import { seed, migrate } from "@/services/seed";
 import { AuthContext } from "@/services/auth";
 
-type Ctx = { db: DB; update: (fn: (db: DB) => void) => void; refresh: () => void; ready: boolean };
+type Ctx = {
+  db: DB;
+  update: (fn: (db: DB) => void) => void;
+  refresh: () => void;
+  ready: boolean;
+};
 const StoreCtx = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(seed);
   const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    if (dataProvider === "firebase") {
-      hydrateFirebase().then(() => {
-        setDb(migrate(getRepository().load()));
-        setReady(true);
-      }).catch((e) => {
-        console.error("Falha ao hidratar Firebase:", e);
-        setDb(migrate(getRepository().load()));
-        setReady(true);
+    const repo = getRepository();
+
+    let unsub: (() => void) | undefined;
+    if (repo.subscribe) {
+      unsub = repo.subscribe((remoteDb) => {
+        setDb(migrate(remoteDb));
       });
+    }
+
+    if (dataProvider === "firebase") {
+      hydrateFirebase()
+        .then(() => {
+          setDb(migrate(repo.load()));
+          setReady(true);
+        })
+        .catch((e) => {
+          console.error("Falha ao hidratar Firebase:", e);
+          setDb(migrate(repo.load()));
+          setReady(true);
+        });
     } else {
-      setDb(migrate(getRepository().load()));
+      setDb(migrate(repo.load()));
       setReady(true);
     }
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
-  const update = (fn: (db: DB) => void) =>
-    setDb((prev) => { const next = structuredClone(prev); fn(next); getRepository().save(next); return next; });
+
+  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const update = (fn: (db: DB) => void) => {
+    setDb((prev) => {
+      const optimistic = structuredClone(prev);
+      fn(optimistic);
+      return optimistic;
+    });
+
+    const repo = getRepository();
+    if (pendingRef.current) clearTimeout(pendingRef.current);
+    pendingRef.current = setTimeout(() => {
+      if (repo.update) {
+        repo.update(fn).catch((err) => {
+          console.error("Erro na transação do Firebase:", err);
+          setDb(migrate(repo.load()));
+        });
+      } else {
+        setDb((prev) => {
+          const next = structuredClone(prev);
+          fn(next);
+          repo.save(next);
+          return next;
+        });
+      }
+    }, 600);
+  };
+
   const refresh = () => setDb(migrate(getRepository().load()));
+
   return <StoreCtx.Provider value={{ db, update, refresh, ready }}>{children}</StoreCtx.Provider>;
 }
 
@@ -37,7 +86,6 @@ export function useStore() {
   const c = useContext(StoreCtx);
   if (!c) throw new Error("StoreProvider ausente");
   const auth = useContext(AuthContext);
-  // Na nuvem, o perfil vem SEMPRE do login (o currentUserId é compartilhado no documento).
   const user = dataProvider === "firebase"
     ? c.db.users.find((u) => u.email.toLowerCase() === auth?.user?.email.toLowerCase()) ?? auth?.user ?? undefined
     : c.db.users.find((u) => u.id === c.db.currentUserId) ?? c.db.users[0];

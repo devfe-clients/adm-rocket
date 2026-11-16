@@ -5,7 +5,12 @@ import { firebaseRepository } from "./firebaseRepository";
 import type { AppUser } from "@/lib/types";
 import { userSaveSchema } from "./user-management";
 
-export interface Repository { load(): DB; save(db: DB): void }
+export interface Repository {
+  load(): DB;
+  save(db: DB): void;
+  update?(mutator: (draft: DB) => void): Promise<DB>;
+  subscribe?(cb: (db: DB) => void): () => void;
+}
 
 const KEY = "rocket-gestao-db-v1";
 

@@ -1,11 +1,23 @@
+import React from "react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export function Num({ value, onChange, className }: { value: number; onChange: (n: number) => void; className?: string }) {
+  const [local, setLocal] = React.useState<string>("");
+  const [focused, setFocused] = React.useState(false);
+
+  const display = focused ? local : (Number.isFinite(value) && value !== 0 ? String(value) : "");
+
   return (
-    <input type="number" inputMode="decimal" min={0} value={Number.isFinite(value) ? value : 0}
-      onChange={(e) => onChange(Math.min(1e10, Math.max(0, parseFloat(e.target.value) || 0)))}
-      className={cn("h-9 w-full min-w-20 rounded-md border bg-background px-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring", className)} />
+    <input
+      type="text" inputMode="decimal"
+      value={display}
+      onFocus={() => { setLocal(value !== 0 ? String(value) : ""); setFocused(true); }}
+      onBlur={() => { setFocused(false); onChange(Math.min(1e10, Math.max(0, parseFloat(local) || 0))); }}
+      onChange={(e) => { const v = e.target.value.replace(/[^0-9.,]/g, ""); setLocal(v); onChange(Math.min(1e10, Math.max(0, parseFloat(v.replace(",", ".")) || 0))); }}
+      placeholder="0"
+      className={cn("h-9 w-full min-w-20 rounded-md border bg-background px-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring", className)}
+    />
   );
 }
 export function Txt({ value, onChange, className, type = "text" }: { value: string; onChange: (s: string) => void; className?: string; type?: string }) {
