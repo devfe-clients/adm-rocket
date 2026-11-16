@@ -30,7 +30,15 @@ function UsersPage() {
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
 
-  const [originalIds] = useState<Set<string>>(() => new Set(db.users.map((u) => u.id)));
+  const [originalIds, setOriginalIds] = useState<Set<string>>(() => new Set(db.users.map((u) => u.id)));
+
+  useEffect(() => {
+    setOriginalIds((prev) => {
+      const next = new Set(prev);
+      db.users.forEach((u) => next.add(u.id));
+      return next;
+    });
+  }, [db.users]);
 
   useEffect(() => {
     setUserList(db.users);
