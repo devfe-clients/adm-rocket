@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Trash2, Calendar, CheckCircle2, Clock, AlertCircle, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Clock, AlertCircle, CalendarDays, Printer, X } from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
-import { Num, PaidToggle, PeriodFilter, Sel, Txt } from "@/components/fields";
+import { Num, PaidToggle, PeriodFilter, Sel, Txt, MONTHS } from "@/components/fields";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
@@ -30,6 +30,12 @@ function isThisWeek(dateStr: string, todayStr: string): boolean {
   return diffDays >= 0 && diffDays <= 7;
 }
 
+function formatDateBR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const [y, m, d] = dateStr.split("-");
+  return d && m && y ? `${d}/${m}/${y}` : dateStr;
+}
+
 const td = "p-1.5";
 
 function Finance() {
@@ -42,9 +48,26 @@ function Finance() {
   const [payFilter, setPayFilter] = useState<QuickFilter>("todos");
   const [recFilter, setRecFilter] = useState<QuickFilter>("todos");
 
-  // Lista base filtrada por empresa e mês/ano selecionado
-  const allPays = db.payables.filter((x) => p.matchCompany(x.companyId) && inPeriod(x.due, p.month, p.year)).sort((a, b) => a.due.localeCompare(b.due));
-  const allRecs = db.receivables.filter((x) => p.matchCompany(x.companyId) && inPeriod(x.date, p.month, p.year)).sort((a, b) => a.date.localeCompare(b.date));
+  // Filtro de data personalizada (De / Até)
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const hasCustomDate = Boolean(startDate || endDate);
+
+  const matchCustomPeriod = (targetDate: string) => {
+    if (!targetDate) return false;
+    if (startDate && targetDate < startDate) return false;
+    if (endDate && targetDate > endDate) return false;
+    return true;
+  };
+
+  // Se tiver data personalizada preenchida, filtra pelo intervalo; se não, filtra pelo mês selecionado
+  const allPays = db.payables
+    .filter((x) => p.matchCompany(x.companyId) && (hasCustomDate ? matchCustomPeriod(x.due) : inPeriod(x.due, p.month, p.year)))
+    .sort((a, b) => a.due.localeCompare(b.due));
+
+  const allRecs = db.receivables
+    .filter((x) => p.matchCompany(x.companyId) && (hasCustomDate ? matchCustomPeriod(x.due || x.date) : inPeriod(x.date, p.month, p.year)))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   // Estatísticas de Contas a Pagar
   const payPaid = allPays.filter((x) => x.paid);
@@ -100,6 +123,52 @@ function Finance() {
         <PeriodFilter {...p} />
       </PageHeader>
 
+      {/* Barra de Período Personalizado e Botão de Impressão */}
+      <div className="print:hidden mb-4 flex flex-wrap items-center justify-between gap-2 p-2.5 bg-card rounded-xl border">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="size-3.5 text-primary" /> Período por data:
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">De:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-8 px-2 rounded-md border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">Até:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-8 px-2 rounded-md border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          {hasCustomDate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setStartDate(""); setEndDate(""); }}
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3 mr-1" /> Limpar datas
+            </Button>
+          )}
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.print()}
+          className="h-8 gap-1.5 text-xs font-medium ml-auto"
+        >
+          <Printer className="size-3.5 text-primary" /> Baixar PDF / Imprimir
+        </Button>
+      </div>
+
       <Tabs defaultValue="pagar">
         <TabsList>
           <TabsTrigger value="pagar">Contas a pagar</TabsTrigger>
@@ -110,7 +179,7 @@ function Finance() {
         <TabsContent value="pagar" className="mt-4 space-y-3">
           {/* Cards de Resumo */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-            <StatCard label="Total do mês" value={sum(allPays.map((x) => x.value))} icon={<Calendar className="size-4 text-muted-foreground" />} />
+            <StatCard label={hasCustomDate ? "Total do período" : "Total do mês"} value={sum(allPays.map((x) => x.value))} icon={<Calendar className="size-4 text-muted-foreground" />} />
             <StatCard label="Pago" value={sum(payPaid.map((x) => x.value))} badgeClass="text-emerald-600 dark:text-emerald-400" icon={<CheckCircle2 className="size-4 text-emerald-600" />} />
             <StatCard label="Vence hoje" value={sum(payToday.map((x) => x.value))} badgeClass="text-amber-600 dark:text-amber-400" icon={<Clock className="size-4 text-amber-600" />} />
             <StatCard label="Nesta semana" value={sum(payWeek.map((x) => x.value))} badgeClass="text-blue-600 dark:text-blue-400" icon={<CalendarDays className="size-4 text-blue-600" />} />
@@ -186,7 +255,7 @@ function Finance() {
         <TabsContent value="receber" className="mt-4 space-y-3">
           {/* Cards de Resumo */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-            <StatCard label="Total do mês" value={sum(allRecs.map((x) => x.value))} icon={<Calendar className="size-4 text-muted-foreground" />} />
+            <StatCard label={hasCustomDate ? "Total do período" : "Total do mês"} value={sum(allRecs.map((x) => x.value))} icon={<Calendar className="size-4 text-muted-foreground" />} />
             <StatCard label="Recebido" value={sum(recPaid.map((x) => x.value))} badgeClass="text-emerald-600 dark:text-emerald-400" icon={<CheckCircle2 className="size-4 text-emerald-600" />} />
             <StatCard label="Recebe hoje" value={sum(recToday.map((x) => x.value))} badgeClass="text-amber-600 dark:text-amber-400" icon={<Clock className="size-4 text-amber-600" />} />
             <StatCard label="Nesta semana" value={sum(recWeek.map((x) => x.value))} badgeClass="text-blue-600 dark:text-blue-400" icon={<CalendarDays className="size-4 text-blue-600" />} />
