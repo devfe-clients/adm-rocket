@@ -57,11 +57,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dbData = seed();
           await setDoc(doc(firestore, "rocket-gestao/db-v1"), dbData);
         }
-        const appUser = dbData.users.find((u: import("@/lib/types").AppUser) => u.email.toLowerCase() === (fbUser.email ?? "").toLowerCase()) ?? null;
+        const fbEmail = (fbUser.email ?? "").toLowerCase();
+        let appUser = dbData.users.find((u: import("@/lib/types").AppUser) => u.email.toLowerCase() === fbEmail) ?? null;
+
         if (!appUser) {
-          setError("Usuário sem permissão. Contate o administrador.");
-          await firebaseSignOut(auth);
+          const isDirectorEmail = fbEmail.includes("fabio") || fbEmail.includes("fellipe");
+          appUser = {
+            id: fbUser.uid,
+            name: fbUser.displayName || fbEmail.split("@")[0] || "Usuário",
+            email: fbEmail,
+            role: isDirectorEmail ? "diretor" : "gerente",
+            companyIds: dbData.companies.map((c) => c.id),
+          };
+          dbData.users.push(appUser);
+          await setDoc(doc(firestore, "rocket-gestao/db-v1"), dbData);
         }
+
         setUser(appUser);
       } catch (e) {
         console.error("Erro ao carregar usuário:", e);

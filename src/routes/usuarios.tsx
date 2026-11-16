@@ -30,16 +30,6 @@ function UsersPage() {
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
 
-  const [originalIds, setOriginalIds] = useState<Set<string>>(() => new Set(db.users.map((u) => u.id)));
-
-  useEffect(() => {
-    setOriginalIds((prev) => {
-      const next = new Set(prev);
-      db.users.forEach((u) => next.add(u.id));
-      return next;
-    });
-  }, [db.users]);
-
   useEffect(() => {
     setUserList(db.users);
   }, [db.users]);
@@ -50,12 +40,13 @@ function UsersPage() {
 
     for (const u of userList) {
       const pwd = passwords[u.id] ?? "";
-      const isNew = !originalIds.has(u.id);
-      if (isNew && pwd.length < 6) {
+      const isExisting = db.users.some((x) => x.id === u.id || x.email.toLowerCase() === u.email.toLowerCase());
+
+      if (!isExisting && pwd.length < 6) {
         toast.error(`Preencha a senha inicial de "${u.name || u.email}" (mín. 6 caracteres).`);
         return;
       }
-      if (!isNew && pwd.length > 0 && pwd.length < 6) {
+      if (isExisting && pwd.length > 0 && pwd.length < 6) {
         toast.error(`A nova senha de "${u.name || u.email}" precisa ter ao menos 6 caracteres.`);
         return;
       }
@@ -176,7 +167,7 @@ function UsersPage() {
                   setPasswords((prev) => ({ ...prev, [u.id]: e.target.value }))
                 }
                 placeholder={
-                  originalIds.has(u.id)
+                  db.users.some((x) => x.id === u.id || x.email.toLowerCase() === u.email.toLowerCase())
                     ? "Nova senha (deixe em branco para manter)"
                     : "Senha inicial (mín. 6 caracteres) *"
                 }
@@ -184,11 +175,12 @@ function UsersPage() {
                 className={cn(
                   "w-full rounded-lg border bg-background px-3 py-2 pr-9 text-sm outline-none",
                   "focus:ring-2 focus:ring-primary/40 transition",
-                  !originalIds.has(u.id) && (passwords[u.id] ?? "").length === 0
+                  !db.users.some((x) => x.id === u.id || x.email.toLowerCase() === u.email.toLowerCase()) && (passwords[u.id] ?? "").length === 0
                     ? "border-amber-400/60 placeholder:text-amber-600/70"
                     : "border-border"
                 )}
               />
+
               <button
                 type="button"
                 tabIndex={-1}
