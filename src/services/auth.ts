@@ -4,7 +4,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, runTransaction, setDoc } from "firebase/firestore";
 import {
   createContext,
   useContext,
@@ -49,31 +49,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const snap = await getDoc(doc(firestore, "rocket-gestao/db-v1"));
-        let dbData: import("@/lib/types").DB;
-        if (snap.exists()) {
-          dbData = snap.data() as import("@/lib/types").DB;
-        } else {
-          dbData = seed();
-          await setDoc(doc(firestore, "rocket-gestao/db-v1"), dbData);
-        }
-        const fbEmail = (fbUser.email ?? "").toLowerCase();
-        let appUser = dbData.users.find((u: import("@/lib/types").AppUser) => u.email.toLowerCase() === fbEmail) ?? null;
+const fbEmail = (fbUser.email ?? "").toLowerCase();
+const ref = doc(firestore, "rocket-gestao/db-v1");
+let appUser: import("@/lib/types").AppUser | null = null;
 
-        if (!appUser) {
-          const isDirectorEmail = fbEmail.includes("fabio") || fbEmail.includes("fellipe");
-          appUser = {
-            id: fbUser.uid,
-            name: fbUser.displayName || fbEmail.split("@")[0] || "Usuário",
-            email: fbEmail,
-            role: isDirectorEmail ? "diretor" : "gerente",
-            companyIds: dbData.companies.map((c) => c.id),
-          };
-          dbData.users.push(appUser);
-          await setDoc(doc(firestore, "rocket-gestao/db-v1"), dbData);
-        }
+await runTransaction(firestore, async (transaction) => {
+  const snap = await transaction.get(ref);
+  let dbData: import("@/lib/types").DB;
+  if (snap.exists()) {
+    dbData = snap.data() as import("@/lib/types").DB;
+  } else {
+    dbData = seed();
+  }
 
-        setUser(appUser);
+  const existing = dbData.users.find(
+    (u: import("@/lib/types").AppUser) => u.email.toLowerCase() === fbEmail,
+  ) ?? null;
+
+  if (existing) {
+    appUser = existing;
+    return;
+  }
+
+  const isDirectorEmail = fbEmail.includes("fabio") || fbEmail.includes("fabio");
+  appUser = {
+    id: fbUser.uid,
+    name: fbUser.displayName || fbEmail.split("@")[0] || "Usuário",
+    email: fbEmail,
+    role: isDirectorEmail ? "diretor" : "gerente",
+    companyIds: dbData.companies.map((c: import("@/lib/types").Company) => c.id),
+  };
+  dbData.users.push(appUser);
+  transaction.set(ref, dbData);
+});
+
+setUser(appUser);
       } catch (e) {
         console.error("Erro ao carregar usuário:", e);
         setUser(null);

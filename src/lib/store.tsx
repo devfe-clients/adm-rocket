@@ -5,6 +5,7 @@ import { hydrateFirebase } from "@/services/firebaseRepository";
 import { dataProvider } from "@/services/config";
 import { seed, migrate } from "@/services/seed";
 import { AuthContext } from "@/services/auth";
+import { toast } from "sonner";
 
 type Ctx = {
   db: DB;
@@ -62,10 +63,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (pendingRef.current) clearTimeout(pendingRef.current);
     pendingRef.current = setTimeout(() => {
       if (repo.update) {
-        repo.update(fn).catch((err) => {
-          console.error("Erro na transação do Firebase:", err);
-          setDb(migrate(repo.load()));
-        });
+repo.update(fn).catch((err) => {
+  console.error("Erro na transação do Firebase:", err);
+  setDb(migrate(repo.load()));
+  toast.error(
+    err instanceof Error && err.message
+      ? `Erro ao salvar: ${err.message}`
+      : "Sem permissão para salvar. Peça ao diretor para conferir seu acesso.",
+  );
+});
       } else {
         setDb((prev) => {
           const next = structuredClone(prev);

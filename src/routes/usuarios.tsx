@@ -24,15 +24,16 @@ export const Route = createFileRoute("/usuarios")({
 
 function UsersPage() {
   const { db, update, isDirector } = useStore();
-  const [userList, setUserList] = useState<AppUser[]>(db.users);
-  const [isSaving, setIsSaving] = useState(false);
-  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
-  const [passwords, setPasswords] = useState<Record<string, string>>({});
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+const [userList, setUserList] = useState<AppUser[]>(db.users);
+const [isSaving, setIsSaving] = useState(false);
+const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+const [passwords, setPasswords] = useState<Record<string, string>>({});
+const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
-    setUserList(db.users);
-  }, [db.users]);
+useEffect(() => {
+  if (!dirty) setUserList(db.users);
+}, [db.users, dirty]);
 
   if (!isDirector) return <NoAccess />;
 
@@ -69,9 +70,11 @@ function UsersPage() {
         data: { token, users: payload },
       });
 
-      update((d) => { d.users = updatedUsers; });
-      setPasswords({});
-      toast.success("Usuários e senhas salvos com sucesso!");
+update((d) => { d.users = updatedUsers; });
+setPasswords({});
+setDirty(false);
+setUserList(updatedUsers);
+toast.success("Usuários e senhas salvos com sucesso!");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Erro ao salvar usuários.";
       toast.error(msg);
@@ -113,9 +116,10 @@ function UsersPage() {
 
       <div className="space-y-3">
         {userList.map((u) => {
-          const updateUser = (patch: Partial<AppUser>) => {
-            setUserList((prev) => prev.map((item) => (item.id === u.id ? { ...item, ...patch } : item)));
-          };
+const updateUser = (patch: Partial<AppUser>) => {
+  setDirty(true);
+  setUserList((prev) => prev.map((item) => (item.id === u.id ? { ...item, ...patch } : item)));
+};
 
           return (
             <div key={u.id} className="rounded-xl border bg-card p-4 space-y-3">
@@ -151,7 +155,7 @@ function UsersPage() {
               <button
                 type="button"
                 disabled={u.id === db.currentUserId}
-                onClick={() => setUserList((prev) => prev.filter((item) => item.id !== u.id))}
+                onClick={() => { setDirty(true); setUserList((prev) => prev.filter((item) => item.id !== u.id)); }}
                 className="p-2 text-muted-foreground hover:text-destructive disabled:opacity-30"
                 aria-label="Remover"
               >
@@ -231,12 +235,13 @@ function UsersPage() {
       <div className="flex items-center justify-between pt-2">
         <Button
           variant="outline"
-          onClick={() =>
-            setUserList((prev) => [
-              ...prev,
-              { id: uid(), name: "", email: "", role: "gerente", companyIds: [] },
-            ])
-          }
+onClick={() => {
+  setDirty(true);
+  setUserList((prev) => [
+    ...prev,
+    { id: uid(), name: "", email: "", role: "gerente", companyIds: [] },
+  ]);
+}}
           className="gap-1.5"
         >
           <Plus className="size-4" /> Adicionar usuário

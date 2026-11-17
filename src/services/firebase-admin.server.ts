@@ -67,7 +67,15 @@ const key = await importPKCS8(privateKey, "RS256");
     if (!account && !u.password) throw new Error(`Preencha a senha inicial de ${u.name}.`);
     accounts.set(u.email, account);
   }
-  const users: AppUser[] = input.users.map(({ password: _password, ...profile }) => profile);
+
+const ghostUsers = oldUsers.filter(
+  (old) => !input.users.some((u) => u.id === old.id),
+);
+
+const users: AppUser[] = [
+  ...input.users.map(({ password: _password, ...profile }) => profile),
+  ...ghostUsers,
+];
   for (const u of input.users) {
     let account = accounts.get(u.email);
     if (!account) {
