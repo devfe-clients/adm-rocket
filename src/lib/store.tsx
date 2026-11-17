@@ -80,7 +80,7 @@ repo.update(fn).catch((err) => {
           return next;
         });
       }
-    }, 600);
+    }, 3000);
   };
 
   const refresh = () => setDb(migrate(getRepository().load()));

@@ -3,7 +3,6 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { firebaseConfig, dataProvider } from "./config";
 
-// Sem chaves (modo local/testes) usa um app de mentira para não quebrar ao carregar.
 const NAME = `rocket-${dataProvider}`;
 const cfg = dataProvider === "firebase"
   ? firebaseConfig
