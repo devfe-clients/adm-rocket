@@ -17,7 +17,8 @@ let cache: DB | null = null;
 let unsub: Unsubscribe | null = null;
 const subscribers = new Set<(db: DB) => void>();
 
-async function saveSafetyBackup(db: DB): Promise<void> {
+async function saveSafetyBackup(db: DB, isDirector = false): Promise<void> {
+  if (!isDirector) return;
   try {
     const today = new Date().toISOString().slice(0, 10);
     const backupRef = doc(firestore, "rocket-gestao", `backup-${today}`);
@@ -69,7 +70,6 @@ export const firebaseRepository: Repository = {
   save(db: DB): void {
     cache = db;
     void setDoc(doc(firestore, DOC_PATH), db);
-    void saveSafetyBackup(db);
   },
   async update(mutator: (draft: DB) => void): Promise<DB> {
     const ref = doc(firestore, DOC_PATH);
@@ -84,7 +84,6 @@ export const firebaseRepository: Repository = {
     });
 
     cache = updated;
-    void saveSafetyBackup(updated);
 
     subscribers.forEach((cb) => {
       try {
